@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import pypdf
 import os
 import time
 
@@ -35,7 +34,6 @@ def generate_fast_response(prompt_text):
         'gemini-2.0-flash',
         'gemini-2.0-flash-lite'
     ]
-    
     last_error = None
     for model_name in priority_queue:
         try:
@@ -46,161 +44,159 @@ def generate_fast_response(prompt_text):
             last_error = e
             time.sleep(0.5)
             continue
-            
     raise last_error
 
-# --- 4. BASIS-WISSEN (DER KRITISCHE KERN) ---
+# --- 4. DAS BASIS-WISSEN (AKTUALISIERT & POINTIERT) ---
+# Hier steht exakt Ihr Text drin, damit der Bot scharf argumentiert.
 basis_wissen_kritik = """
-FAKTEN FÜR DIE ANALYSE (KRITISCHE AUSWIRKUNGEN):
+POINTIERTE ANALYSE DER AUSWIRKUNGEN (FAKTENLAGE):
 
-1. MIETER / JUNGE FAMILIEN:
-- Fakt: Planung setzt auf "Ersatzneubau" (Abriss Altes -> Bau Neues).
-- Konsequenz: Neubauten sind deutlich teurer. Günstiger Altbau verschwindet.
-- Risiko: Verdrängung aus der Gemeinde, da unbezahlbar.
+1. JUNGE FAMILIE / MIETER:
+- Nachteil (Annahme): Die Planung setzt auf "Ersatzneubauten" (z.B. Blattmatt). Das führt marktüblich zu höheren Mieten als im Bestand. Folge: Verdrängungseffekt, Zuzug für junge Familien wird erschwert.
+- Wohnumfeld: Verdichtung im Zentrum (Dorf/Sarbach) reduziert Grünflächen und Licht (Schattenwurf).
+- Steuern: Stagnation + Alterung = Weniger Zahler für gleiche Infrastruktur -> Risiko von Steuererhöhungen, die via Nebenkosten/Mietzins auch Mieter treffen.
+- Vorteil (Annahme): Keine direkten Vorteile erkennbar.
 
 2. EIGENHEIMBESITZER (MITTELALTER & SENIOREN):
-- Fakt: Stagnation der Einwohnerzahl bei gleichzeitiger Alterung ("Überalterung").
-- Konsequenz: Weniger Steuerzahler müssen die fixen Infrastrukturkosten (Strassen, Wasser, Schule) tragen.
-- Risiko: Langfristig steigender Steuerfuss und Wertverlust bei Immobilien, wenn das Dorf an Attraktivität verliert (Läden schliessen).
+- Nachteil (Annahme): Steuerdruck steigt, da Infrastrukturkosten auf weniger Erwerbstätige verteilt werden (Überalterung).
+- Immobilienwert (Hinterburg): Siedlung wird wie "Zone ausserhalb Bauzone" behandelt -> Investitionshemmnis, eingeschränkte Anbaumöglichkeiten.
+- Gewässer: Bauverbote/Einschränkungen an Bächen (Hinterburgmülibach) reduzieren Nutzung des eigenen Landes.
+- Vorteil (Annahme): Evtl. Wertsteigerung in Zonen mit massiver Verdichtung (Blattmatt) durch Preisanstieg.
 
 3. LEHRER / SCHULE:
-- Fakt: Fehlender Zuzug junger Familien wegen hoher Mietpreise.
-- Konsequenz: Sinkende Schülerzahlen.
-- Risiko: Stellenabbau, Klassenzusammenlegungen, Schulstandort verliert Qualität.
+- Nachteil (Annahme): Fehlender Zuzug junger Familien (wegen hoher Mieten) führt zu sinkenden Schülerzahlen.
+- Konsequenz: Klassenzusammenlegungen, Stellenabbau, unsichere Planung.
+- Finanzen: Steuerdruck gefährdet Ausstattung der Schulen langfristig.
 
-4. GEWERBE:
-- Fakt: WA4-Zone erlaubt nur 15% Wohnen.
-- Risiko: Kleingewerbe (Handwerker), das Wohnen & Arbeiten verbindet, findet keinen Platz.
+4. WIRTSCHAFT / GEWERBE:
+- Nachteil (Annahme): WA4-Zone deckelt Wohnanteil auf 15%. Das verhindert Kleingewerbe, das Wohnen & Arbeiten kombinieren will. Innovation wird gebremst.
 
-5. SPEZIFISCHE ORTE:
-- Blattmatt: Abriss statt Verdichtung.
-- Hinterburg: Investitionsstau (falsche Zonenzuweisung).
-- Parzelle 7: Rückzonung vernichtet Baupotential.
+5. DORFLADEN / VERSORGUNG:
+- Risiko: Läden brauchen Frequenz. Stagnierende Einwohnerzahlen und fehlende junge Familien reduzieren die Kaufkraft. Das "Lädelisterben" wird begünstigt.
+
+6. QUARTIERE SPEZIFISCH:
+- Blattmatt: "Wachstum nach innen" heisst hier konkret Abriss günstiger Bausubstanz für teure Neubauten.
+- Dorfkern/Sarbach: Wandel von dörflich zu städtisch. Verlust von privatem Grün.
+- Hinterburg: Planerischer Stillstand, da nicht als Siedlungsgebiet anerkannt.
 """
 
-# --- 5. BERICHT GEWÄSSER ---
-offizieller_bericht_text = """
-ZUSAMMENFASSUNG GEWÄSSERRÄUME:
-- Bauverbot in Gewässerräumen (Sihl, Lorze, Bäche).
-- Sihl (Sihlbrugg): 78m Raum, reduziert bei Gewerbezonen.
-- Sarbach: Verzicht auf Raum bei Hof Erlenbach (Eindolung).
-- Hinterburgmülibach: Teilweise Bauverbote wegen Hochwassergefahr.
-"""
-
-# --- 6. PDF LADEN ---
-def get_additional_pdf_text():
-    uploaded_files = st.session_state.get('uploaded_pdfs', [])
+# --- 5. ZUSATZDATEN LADEN ---
+def load_txt_data():
     text = ""
-    if uploaded_files:
-        for pdf_file in uploaded_files:
-            try:
-                reader = pypdf.PdfReader(pdf_file)
-                text += f"\n\n--- ZUSATZ-PDF: {pdf_file.name} ---\n"
-                for page in reader.pages:
-                    text += page.extract_text() or ""
-            except: pass
+    current_dir = os.getcwd()
+    txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith('.txt')]
+    for f in txt_files:
+        try:
+            with open(f, "r", encoding="utf-8") as file:
+                text += f"\n\n--- DOKUMENT: {f} ---\n{file.read()}"
+        except: pass
     return text
 
-# --- 7. UI ---
+files_text = load_txt_data()
+
+# --- 6. UI LAYOUT ---
 st.title("🏘️ Ortsplanung Neuheim: Der Check")
+st.markdown("Wählen Sie Ihren Fokus für eine **klare Chancen/Risiken-Analyse**.")
 
-with st.sidebar:
-    st.header("⚙️ Menü")
-    st.success("Daten geladen.")
-    if st.button("Neuer Chat 🔄"):
-        st.session_state.messages = []
-        st.rerun()
-    st.markdown("---")
-    st.file_uploader("Zusatz-PDFs (optional)", type=["pdf"], accept_multiple_files=True, key="uploaded_pdfs")
+# --- 7. DIE 9-FELDER MATRIX (BUTTONS) ---
 
-st.markdown("Klicken Sie auf Ihre Lebenssituation für eine **kurze Analyse**.")
-
-# --- 8. BUTTONS (USER ROLES) ---
 if "last_prompt" not in st.session_state:
     st.session_state.last_prompt = None
 
-c1, c2, c3, c4 = st.columns(4)
+# CSS Hack für gleichgrosse Buttons (optional, sieht aber besser aus)
+st.markdown("""
+<style>
+div.stButton > button:first-child {
+    height: 3em;
+    width: 100%;
+}
+</style>""", unsafe_allow_html=True)
 
-prompt_clicked = None
+# REIHE 1: PERSONEN
+c1, c2, c3 = st.columns(3)
+if c1.button("👨‍👩‍👧 Familie & Mieter"):
+    st.session_state.last_prompt = "Ich bin Mieter / junge Familie. Was sind die konkreten Nachteile (Miete, Umfeld) bei Annahme?"
+if c2.button("🏡 Eigenheim & Senioren"):
+    st.session_state.last_prompt = "Ich bin Eigenheimbesitzer / Senior. Was bedeutet die Planung für meine Steuern und mein Grundstück?"
+if c3.button("🏫 Schule & Lehrer"):
+    st.session_state.last_prompt = "Ich arbeite an der Schule. Was bedeutet die Demografie-Entwicklung für meinen Arbeitsplatz?"
 
-if c1.button("👨‍👩‍👧 Junge Familie / Mieter", use_container_width=True):
-    prompt_clicked = "Ich bin eine junge Familie in einer Mietwohnung. Was sind meine Vor- und Nachteile bei Annahme oder Ablehnung?"
+# REIHE 2: WIRTSCHAFT & GELD
+c4, c5, c6 = st.columns(3)
+if c4.button("💰 Steuerzahler"):
+    st.session_state.last_prompt = "Warum droht bei Annahme der Vorlage eine Steuererhöhung? Erkläre den Zusammenhang mit der Stagnation."
+if c5.button("🛠️ Gewerbe & Wirtschaft"):
+    st.session_state.last_prompt = "Was bedeutet die WA4-Zone (15% Wohnanteil) für das lokale Gewerbe und Wohnen/Arbeiten?"
+if c6.button("🛒 Dorfladen & Versorgung"):
+    st.session_state.last_prompt = "Welche Folgen hat die Planung für Dorfläden und die Nahversorgung im Zentrum?"
 
-if c2.button("🏡 Eigenheim (Mittelalter)", use_container_width=True):
-    prompt_clicked = "Ich bin im mittleren Alter und habe ein Eigenheim. Was bedeutet die Planung für Steuern und Wert?"
+# REIHE 3: ORTE & QUARTIERE
+c7, c8, c9 = st.columns(3)
+if c7.button("🏗️ Blattmatt (Wohnen)"):
+    st.session_state.last_prompt = "Was passiert konkret in der Blattmatt? Analyse zu 'Ersatzneubau' vs. günstigem Wohnraum."
+if c8.button("🏘️ Dorfkern & Sarbach"):
+    st.session_state.last_prompt = "Wie verändert sich der Charakter im Dorfkern/Sarbach? (Schatten, Grünflächen, Dichte)."
+if c9.button("🏚️ Siedlung Hinterburg"):
+    st.session_state.last_prompt = "Wie wird die Siedlung Hinterburg behandelt? Welche Nachteile entstehen für Eigentümer dort?"
 
-if c3.button("👴 Eigenheim (Senioren)", use_container_width=True):
-    prompt_clicked = "Ich bin Senior im Eigenheim. Was sind die Risiken für mich (Steuern, Versorgung, Dorfleben)?"
-
-if c4.button("im öffentlichen Dienst / Schule", use_container_width=True):
-    prompt_clicked = "Ich bin Lehrer / arbeite an der Schule. Was heisst die Planung für meinen Job?"
-
-# --- CHAT ---
+# --- 8. CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if prompt_clicked:
-    st.session_state.messages.append({"role": "user", "parts": prompt_clicked})
+# Wenn Button gedrückt wurde -> zur History hinzufügen
+if st.session_state.last_prompt and (not st.session_state.messages or st.session_state.messages[-1]["parts"] != st.session_state.last_prompt):
+    st.session_state.messages.append({"role": "user", "parts": st.session_state.last_prompt})
     st.session_state.must_respond = True
 
+# Chat rendern
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["parts"])
 
-user_input = st.chat_input("Eigene Frage (z.B. 'Was passiert mit der Hinterburg?')...")
+# --- 9. MANUELLER INPUT ---
+st.markdown("---")
+user_input = st.chat_input("Oder stellen Sie eine eigene, spezifische Frage...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "parts": user_input})
     st.session_state.must_respond = True
-    with st.chat_message("user"):
-        st.markdown(user_input)
+    st.rerun()
 
+# --- 10. KI ANTWORT ---
 if st.session_state.get("must_respond", False):
-    last_user_msg = st.session_state.messages[-1]["parts"]
-    additional_pdf_text = get_additional_pdf_text()
+    last_msg = st.session_state.messages[-1]["parts"]
     
     with st.chat_message("model"):
-        info = st.empty()
-        with st.spinner("Erstelle Vergleich..."):
+        with st.spinner("Analysiere Faktenlage..."):
             
-            # DER NEUE PROMPT FÜR STRUKTURIERTE ANTWORTEN
             full_prompt = f"""
-            Du bist ein sachlicher Planungs-Analyst.
+            Du bist ein scharfer, sachlicher Planungs-Analyst.
             
-            DEIN AUFTRAG:
-            Antworte auf die Frage des Bürgers kurz, klar und strukturiert.
-            Nutze ZWINGEND das untenstehende Format für die Antwort.
-            Keine langen Texte. Nutze Bulletpoints.
+            AUFTRAG:
+            Antworte kurz, pointiert und ehrlich auf die Frage.
+            Nutze ZWINGEND folgende Struktur für die Antwort:
             
-            DAS FORMAT:
+            ### 🔴 RISIKO BEI ANNAHME (Status Quo)
+            * **[Haupt-Nachteil 1]**: Erkläre kurz und prägnant.
+            * **[Haupt-Nachteil 2]**: Erkläre kurz und prägnant.
+            * **Fazit:** Ein Satz zur negativen Konsequenz.
             
-            **Analyse für Ihre Situation:**
+            ### 🟢 CHANCE BEI ABLEHNUNG (Nein-Stimme)
+            * **Der Gewinn:** Was könnte besser gemacht werden? (z.B. familienfreundlichere Planung, Schutz der Bausubstanz).
             
-            **🔴 BEI ANNAHME DER VORLAGE (Status Quo):**
-            * **Ihr Risiko:** [Das grösste Risiko aus dem Basiswissen, z.B. Mieterhöhung/Steuererhöhung]
-            * **Vermeintlicher Vorteil:** Planung ist abgeschlossen (Rechtssicherheit), aber auf tiefem Niveau.
-            
-            **🟢 BEI ABLEHNUNG (NEIN-Stimme):**
-            * **Ihr Gewinn:** [Die Chance auf Besserung, z.B. bezahlbarer Wohnraum durch Neuplanung]
-            * **Nachteil:** Zeitverzögerung (es braucht eine neue Runde), dafür steigt die Qualität.
-            
-            **Fazit:** [Ein kurzer Satz, der logisch herleitet, warum Ablehnung für diese Person rational besser ist].
-            
-            NUTZE DIESES WISSEN FÜR DIE FAKTEN:
+            NUTZE DIESE FAKTEN:
             {basis_wissen_kritik}
-            {offizieller_bericht_text}
-            {additional_pdf_text}
+            {files_text}
             
-            FRAGE: {last_user_msg}
+            FRAGE: {last_msg}
             """
             
             try:
-                response_text, used_model = generate_fast_response(full_prompt)
-                info.caption(f"⚡ Analyse fertig.")
+                response_text, _ = generate_fast_response(full_prompt)
                 st.markdown(response_text)
                 st.session_state.messages.append({"role": "model", "parts": response_text})
                 st.session_state.must_respond = False
                 
             except Exception as e:
-                st.error(f"Bitte noch einmal klicken.")
+                st.error("Kurze Wartezeit (Server ausgelastet). Bitte gleich nochmal versuchen.")
                 st.session_state.must_respond = False
