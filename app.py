@@ -46,49 +46,42 @@ def generate_fast_response(prompt_text):
             continue
     raise last_error
 
-# --- 4. DAS BASIS-WISSEN (AKTUALISIERT & POINTIERT) ---
-# Hier steht exakt Ihr Text drin, damit der Bot scharf argumentiert.
+# --- 4. DAS BASIS-WISSEN (POINTIERT & KRITISCH) ---
+# Dient als kritische Wissensbasis für den KI-Experten.
 basis_wissen_kritik = """
 POINTIERTE ANALYSE DER AUSWIRKUNGEN (FAKTENLAGE):
 
 1. JUNGE FAMILIE / MIETER:
-- Nachteil (Annahme): Die Planung setzt auf "Ersatzneubauten" (z.B. Blattmatt). Das führt marktüblich zu höheren Mieten als im Bestand. Folge: Verdrängungseffekt, Zuzug für junge Familien wird erschwert.
-- Wohnumfeld: Verdichtung im Zentrum (Dorf/Sarbach) reduziert Grünflächen und Licht (Schattenwurf).
-- Steuern: Stagnation + Alterung = Weniger Zahler für gleiche Infrastruktur -> Risiko von Steuererhöhungen, die via Nebenkosten/Mietzins auch Mieter treffen.
-- Vorteil (Annahme): Keine direkten Vorteile erkennbar.
+- Risiko (Mieten): Ersatzneubauten (z.B. Blattmatt) führen marktüblich zu stark höheren Mieten. Folge: Verdrängungseffekt, Zuzug junger Familien wird stark erschwert.
+- Risiko (Umwelt): Verdichtung im Zentrum reduziert Grünflächen und Licht.
+- Risiko (Steuern): Stagnation + Alterung = Risiko von Steuererhöhungen, die Mieter über Nebenkosten treffen.
 
-2. EIGENHEIMBESITZER (MITTELALTER & SENIOREN):
-- Nachteil (Annahme): Steuerdruck steigt, da Infrastrukturkosten auf weniger Erwerbstätige verteilt werden (Überalterung).
-- Immobilienwert (Hinterburg): Siedlung wird wie "Zone ausserhalb Bauzone" behandelt -> Investitionshemmnis, eingeschränkte Anbaumöglichkeiten.
-- Gewässer: Bauverbote/Einschränkungen an Bächen (Hinterburgmülibach) reduzieren Nutzung des eigenen Landes.
-- Vorteil (Annahme): Evtl. Wertsteigerung in Zonen mit massiver Verdichtung (Blattmatt) durch Preisanstieg.
+2. EIGENHEIMBESITZER (ALLGEMEIN):
+- Risiko (Steuern): Steuerdruck steigt, da Infrastrukturkosten auf weniger Erwerbstätige verteilt werden.
+- Risiko (Hinterburg): Die Siedlung Hinterburg wird planungsrechtlich wie "Zone ausserhalb Bauzone" behandelt. Dies bedeutet **planerischen Stillstand, Investitionshemmnis** und stark **eingeschränkte** An-/Umbau-Möglichkeiten.
+- Risiko (Gewässer): Bauverbote/Einschränkungen an Bächen und Weihern reduzieren die Nutzung des eigenen Landes.
+- Vorteil (Evtl.): Potenzielle Wertsteigerung in Zonen mit massiver Verdichtung (Blattmatt) durch Preisanstieg.
 
-3. LEHRER / SCHULE:
-- Nachteil (Annahme): Fehlender Zuzug junger Familien (wegen hoher Mieten) führt zu sinkenden Schülerzahlen.
-- Konsequenz: Klassenzusammenlegungen, Stellenabbau, unsichere Planung.
-- Finanzen: Steuerdruck gefährdet Ausstattung der Schulen langfristig.
+3. SCHULE / LEHRER:
+- Risiko (Arbeitsplatz): Fehlender Zuzug junger Familien (wegen hoher Mieten) führt zu sinkenden Schülerzahlen. Konsequenz: Klassenzusammenlegungen, potenzieller Stellenabbau, unsichere Planung.
 
 4. WIRTSCHAFT / GEWERBE:
-- Nachteil (Annahme): WA4-Zone deckelt Wohnanteil auf 15%. Das verhindert Kleingewerbe, das Wohnen & Arbeiten kombinieren will. Innovation wird gebremst.
+- Risiko: WA4-Zone deckelt Wohnanteil auf 15%. Das verhindert Kleingewerbe (Handwerker), das Wohnen & Arbeiten kombinieren will.
 
 5. DORFLADEN / VERSORGUNG:
-- Risiko: Läden brauchen Frequenz. Stagnierende Einwohnerzahlen und fehlende junge Familien reduzieren die Kaufkraft. Das "Lädelisterben" wird begünstigt.
-
-6. QUARTIERE SPEZIFISCH:
-- Blattmatt: "Wachstum nach innen" heisst hier konkret Abriss günstiger Bausubstanz für teure Neubauten.
-- Dorfkern/Sarbach: Wandel von dörflich zu städtisch. Verlust von privatem Grün.
-- Hinterburg: Planerischer Stillstand, da nicht als Siedlungsgebiet anerkannt.
+- Risiko: Stagnierende Einwohnerzahlen und fehlende junge Familien reduzieren die Kaufkraft. Das "Lädelisterben" wird begünstigt.
 """
 
-# --- 5. ZUSATZDATEN LADEN ---
+# --- 5. ZUSATZDATEN LADEN (FÜR PDFs/TXTs) ---
 def load_txt_data():
     text = ""
     current_dir = os.getcwd()
-    txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith('.txt')]
+    # Simuliert das Laden von TXT-Dateien. PDF-Logik müsste hier integriert werden, wird aber vereinfacht dargestellt.
+    txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith(('.txt', '.pdf'))]
     for f in txt_files:
         try:
             with open(f, "r", encoding="utf-8") as file:
-                text += f"\n\n--- DOKUMENT: {f} ---\n{file.read()}"
+                text += f"\n\n--- ZUSATZ-DOKUMENT: {f} ---\n{file.read()}"
         except: pass
     return text
 
@@ -99,11 +92,9 @@ st.title("🏘️ Ortsplanung Neuheim: Der Check")
 st.markdown("Wählen Sie Ihren Fokus für eine **klare Chancen/Risiken-Analyse**.")
 
 # --- 7. DIE 9-FELDER MATRIX (BUTTONS) ---
-
 if "last_prompt" not in st.session_state:
     st.session_state.last_prompt = None
 
-# CSS Hack für gleichgrosse Buttons (optional, sieht aber besser aus)
 st.markdown("""
 <style>
 div.stButton > button:first-child {
@@ -116,8 +107,8 @@ div.stButton > button:first-child {
 c1, c2, c3 = st.columns(3)
 if c1.button("👨‍👩‍👧 Familie & Mieter"):
     st.session_state.last_prompt = "Ich bin Mieter / junge Familie. Was sind die konkreten Nachteile (Miete, Umfeld) bei Annahme?"
-if c2.button("🏡 Eigenheim & Senioren"):
-    st.session_state.last_prompt = "Ich bin Eigenheimbesitzer / Senior. Was bedeutet die Planung für meine Steuern und mein Grundstück?"
+if c2.button("🏡 Eigenheim (Mittelalter/Senior)"):
+    st.session_state.last_prompt = "Ich bin Eigenheimbesitzer. Was bedeutet die Planung für meine Steuern und die Bebaubarkeit meines Grundstücks?"
 if c3.button("🏫 Schule & Lehrer"):
     st.session_state.last_prompt = "Ich arbeite an der Schule. Was bedeutet die Demografie-Entwicklung für meinen Arbeitsplatz?"
 
@@ -137,7 +128,7 @@ if c7.button("🏗️ Blattmatt (Wohnen)"):
 if c8.button("🏘️ Dorfkern & Sarbach"):
     st.session_state.last_prompt = "Wie verändert sich der Charakter im Dorfkern/Sarbach? (Schatten, Grünflächen, Dichte)."
 if c9.button("🏚️ Siedlung Hinterburg"):
-    st.session_state.last_prompt = "Wie wird die Siedlung Hinterburg behandelt? Welche Nachteile entstehen für Eigentümer dort?"
+    st.session_state.last_prompt = "Welche klaren Nachteile entstehen für Eigentümer der Siedlung Hinterburg durch die Zonierung?" # Der Button-Text wurde geschärft
 
 # --- 8. CHAT ---
 if "messages" not in st.session_state:
@@ -147,6 +138,7 @@ if "messages" not in st.session_state:
 if st.session_state.last_prompt and (not st.session_state.messages or st.session_state.messages[-1]["parts"] != st.session_state.last_prompt):
     st.session_state.messages.append({"role": "user", "parts": st.session_state.last_prompt})
     st.session_state.must_respond = True
+    st.session_state.last_prompt = None # Reset, damit es nicht doppelt feuert
 
 # Chat rendern
 for msg in st.session_state.messages:
@@ -155,15 +147,15 @@ for msg in st.session_state.messages:
 
 # --- 9. MANUELLER INPUT ---
 st.markdown("---")
-user_input = st.chat_input("Oder stellen Sie eine eigene, spezifische Frage...")
+user_input = st.chat_input("Oder stellen Sie eine eigene, spezifische Frage (z.B. 'Was bedeutet es für die Hinterburg?')...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "parts": user_input})
     st.session_state.must_respond = True
     st.rerun()
 
-# --- 10. KI ANTWORT ---
-if st.session_state.get("must_respond", False):
+# --- 10. KI ANTWORT (EINHEITLICHE KRITISCHE ANALYSE) ---
+if st.session_state.get("must_respond", False) and st.session_state.messages:
     last_msg = st.session_state.messages[-1]["parts"]
     
     with st.chat_message("model"):
@@ -174,15 +166,18 @@ if st.session_state.get("must_respond", False):
             
             AUFTRAG:
             Antworte kurz, pointiert und ehrlich auf die Frage.
-            Nutze ZWINGEND folgende Struktur für die Antwort:
+            Nutze ZWINGEND folgende, leicht verständliche Struktur für die Antwort.
+            Beziehe dich IMMER auf die **Faktenlage** aus dem Basis-Wissen.
             
-            ### 🔴 RISIKO BEI ANNAHME (Status Quo)
-            * **[Haupt-Nachteil 1]**: Erkläre kurz und prägnant.
-            * **[Haupt-Nachteil 2]**: Erkläre kurz und prägnant.
+            DAS ERFORDERLICHE ANTWORT-FORMAT:
+            
+            ### 🔴 RISIKO BEI ANNAHME DER VORLAGE (Status Quo)
+            * **Haupt-Nachteil 1**: [Der härteste, pointierte Fakt]
+            * **Haupt-Nachteil 2**: [Der zweitwichtigste Fakt oder die Konsequenz aus 1]
             * **Fazit:** Ein Satz zur negativen Konsequenz.
             
             ### 🟢 CHANCE BEI ABLEHNUNG (Nein-Stimme)
-            * **Der Gewinn:** Was könnte besser gemacht werden? (z.B. familienfreundlichere Planung, Schutz der Bausubstanz).
+            * **Der Gewinn:** [Die Chance auf Besserung oder eine bessere Planung, z.B. Beibehaltung von günstigem Wohnraum].
             
             NUTZE DIESE FAKTEN:
             {basis_wissen_kritik}
@@ -198,5 +193,5 @@ if st.session_state.get("must_respond", False):
                 st.session_state.must_respond = False
                 
             except Exception as e:
-                st.error("Kurze Wartezeit (Server ausgelastet). Bitte gleich nochmal versuchen.")
+                st.error("Ein technischer Fehler ist aufgetreten (Serverfehler). Bitte gleich nochmal versuchen.")
                 st.session_state.must_respond = False
