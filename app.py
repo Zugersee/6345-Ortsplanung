@@ -6,7 +6,7 @@ import time
 
 # --- 1. KONFIGURATION ---
 st.set_page_config(
-    page_title="Ortsplanung Neuheim: Turbo Check",
+    page_title="Ortsplanung Neuheim: Fakten-Check",
     page_icon="🏘️",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -30,7 +30,6 @@ genai.configure(api_key=api_key)
 
 # --- 3. MODELL (TURBO-PRIORITÄT) ---
 def generate_fast_response(prompt_text):
-    # Wir nutzen die schnellsten Modelle zuerst
     priority_queue = [
         'gemini-2.5-flash',
         'gemini-2.0-flash',
@@ -50,52 +49,49 @@ def generate_fast_response(prompt_text):
             
     raise last_error
 
-# --- 4. DAS BASIS-WISSEN (KRITIK) ---
+# --- 4. BASIS-WISSEN (KRITISCHE FAKTEN, SACHLICH FORMULIERT) ---
 basis_wissen_kritik = """
-FAKTEN-CHECK & ARGUMENTARIUM "NEIN" ZUR ORTSPLANUNG NEUHEIM (Kritische Haltung):
+FAKTEN-CHECK & HINTERGRÜNDE ZUR ORTSPLANUNG NEUHEIM:
 
 1. SCHULE & FAMILIEN:
-- "Ersatzneubauten" führen zu hohen Mieten -> Verdrängung junger Familien -> Schülerschwund -> Klassenabbau.
+- Fakt: Die Planung setzt auf "Ersatzneubauten". Dies führt marktüblich zu höheren Mietpreisen im Vergleich zum Bestand.
+- Demografische Auswirkung: Für junge Familien wird der Zuzug erschwert. Dies hat direkten Einfluss auf die Entwicklung der Schülerzahlen und langfristig auf die Klassenbestände.
 
-2. WIRTSCHAFT & GEWERBE:
-- WA4-Zone erlaubt nur 15% Wohnanteil. Das verhindert modernes Kleingewerbe (Wohnen & Arbeiten).
-- Gewerbe wird an den Rand gedrängt.
+2. WIRTSCHAFT & GEWERBE (WA4-Zone):
+- Fakt: Der Wohnanteil in der Zone WA4 ist auf 15% begrenzt.
+- Auswirkung: Diese Quote limitiert die Ansiedlung von Kleingewerbe, das Wohnen und Arbeiten kombinieren möchte. Gewerbetreibende werden tendenziell in reine Arbeitszonen gelenkt.
 
 3. BLATTMATT (WOHNEN):
-- "Wachstum nach innen" bedeutet hier: Abriss intakter, günstiger Häuser für Luxus-Neubau.
+- Planungsziel: "Wachstum nach innen".
+- Realität vor Ort: In der Blattmatt bedeutet dies den Ersatz von bestehender Bausubstanz durch Neubauten. Dies verändert die Preisstruktur des Wohnraums erheblich und führt zu einer Veränderung der Bewohnerstruktur (Verdrängungseffekt).
 
 4. HINTERBURG:
-- Wird planerisch ignoriert (gilt als "ausserhalb Bauzone", ist aber Siedlung). Investitionsstau.
+- Status: Die Siedlung Hinterburg wird planerisch wie eine Zone ausserhalb der Bauzone behandelt.
+- Konsequenz: Bestehende Bauten haben dadurch nur eingeschränkte Entwicklungsmöglichkeiten (Investitionshemmnis), obwohl es sich faktisch um einen Siedlungskörper handelt.
 
 5. STEUERN & FINANZEN:
-- Stagnation = Überalterung. Infrastrukturkosten bleiben gleich -> Steuererhöhung droht.
+- Zusammenhang: Eine Stagnation der Einwohnerzahl bei gleichzeitiger Alterung der Bevölkerung verändert das Verhältnis von Steuerzahlern zu Infrastrukturkosten.
+- Finanzielle Realität: Da die Infrastrukturkosten (Strassen, Wasser) fix bleiben, verteilt sich die Last auf weniger Erwerbstätige, was den Steuerfuss unter Druck setzt.
 
 6. DORF & SARBACH:
-- Verdichtung mit der Brechstange: Verlust von Gärten, Schattenwurf, Baulärm.
+- Verdichtung: Die geplante Dichte im Zentrum führt zu veränderten Lichtverhältnissen (Schattenwurf) und einer Reduktion privater Grünflächen. Der dörfliche Charakter wandelt sich hin zu einer städtischeren Struktur.
 """
 
-# --- 5. DER OFFIZIELLE BERICHT (FEST INTEGRIERT) ---
-# Dieser Text ist sofort verfügbar (ohne Ladezeit!)
+# --- 5. DER OFFIZIELLE BERICHT (GEWÄSSER) ---
 offizieller_bericht_text = """
 Gemeinde Neuheim, Ortsplanungsrevision, Ausscheidung Gewässerräume.
-Erläuterungsbericht zur Festlegung der Gewässerräume nach Art. 47 RPV.
-
-ZUSAMMENFASSUNG DER WICHTIGSTEN PUNKTE AUS DEM BERICHT:
-1. Ausgangslage: Anpassung an revidiertes Gewässerschutzgesetz (GSchG). Innerhalb und ausserhalb Bauzonen müssen Gewässerräume festgelegt werden.
-2. Bauverbot: Im Gewässerraum gilt grundsätzlich Bauverbot.
-3. Abstand: Innerhalb Bauzone 6m, ausserhalb 9m (wenn kein GWR festgelegt).
-4. Spezialfall Sarbach (Gebiet Erlenbach): Verzicht auf GWR im Bereich der Eindolung (Hofareal), da Offenlegung den Landwirtschaftsbetrieb einschränken würde (Interessenabwägung).
-5. Spezialfall Sihl (Sihlbrugg): Gewässerraum 78m. Im Bereich Bebauungsplan reduziert (dicht überbautes Gebiet), um Erweiterung Gewerbe/Tankstelle nicht zu verunmöglichen.
-6. Stehende Gewässer: GWR für Hinterburgmüli Weiher und Baggersee Hinterthan festgelegt (Naturschutz).
-7. Lorze: Gewässerraum ca. 70m (basierend auf natürlicher Sohlenbreite 40m). Im Bereich Höllgrotten zurückgestellt wegen laufender Planung.
-8. Hinterburgmülibach: Teilweise GWR festgelegt (Hochwassergefahr), teilweise verzichtet.
-9. Baarburgbach: Teilweise GWR festgelegt (Naturschutzgebiet).
-10. Konsequenzen: Wo GWR festgelegt ist, ist die Nutzung eingeschränkt (Bauverbot, nur extensive Bewirtschaftung).
+ZUSAMMENFASSUNG BERICHT GEWÄSSERRÄUME:
+1. Ausgangslage: Anpassung an Bundesrecht (GSchG). Gilt für Siedlung und Landschaft.
+2. Bauverbot: Im Gewässerraum (GWR) dürfen grundsätzlich keine Bauten erstellt werden.
+3. Sarbach (Erlenbach): Im Bereich des Hofareals (Eindolung) wird auf den GWR verzichtet, um den Landwirtschaftsbetrieb nicht einzuschränken.
+4. Sihl (Sihlbrugg): GWR beträgt 78m. Ausnahme im Bereich Bebauungsplan (Gewerbe/Tankstelle): Hier wurde der GWR reduziert, um die wirtschaftliche Nutzung weiter zu ermöglichen.
+5. Lorze: GWR ca. 70m (basierend auf 40m Sohlenbreite). Bereich Höllgrotten ist zurückgestellt.
+6. Hinterburgmülibach: GWR teilweise festgelegt (wegen Hochwassergefahr), was die Bebaubarkeit der angrenzenden Flächen einschränkt.
+7. Stehende Gewässer: GWR festgelegt für Hinterburgmüli Weiher und Baggersee Hinterthan (Naturschutz hat Vorrang).
 """
 
-# --- 6. PDF LADEN (OPTIONAL & MANUELL) ---
+# --- 6. PDF LADEN (OPTIONAL) ---
 def get_additional_pdf_text():
-    # Prüfen, ob der User manuell was hochgeladen hat
     uploaded_files = st.session_state.get('uploaded_pdfs', [])
     text = ""
     if uploaded_files:
@@ -105,31 +101,25 @@ def get_additional_pdf_text():
                 text += f"\n\n--- ZUSATZ-PDF: {pdf_file.name} ---\n"
                 for page in reader.pages:
                     text += page.extract_text() or ""
-            except:
-                pass
+            except: pass
     return text
 
 # --- 7. UI ---
-st.title("🏘️ Ortsplanung Neuheim: Fakten-Check")
+st.title("🏘️ Ortsplanung Neuheim: Der Fakten-Check")
 
-# SIDEBAR MIT WARNUNG
 with st.sidebar:
-    st.header("📂 Zusatz-Dokumente")
-    st.info("Der Bot kennt den 'Erläuterungsbericht Gewässerräume' bereits auswendig!")
-    
+    st.header("📚 Dokumente")
+    st.success("Basisdaten & Gewässerbericht geladen.")
     st.markdown("---")
-    st.write("**Weitere PDFs hinzufügen?**")
-    st.warning("⚠️ Achtung: Das Hochladen von PDFs führt zu Wartezeiten bei der Antwort!")
-    
-    files = st.file_uploader("PDFs hier ablegen", type=["pdf"], accept_multiple_files=True, key="uploaded_pdfs")
-    
+    st.write("Optionale Uploads:")
+    files = st.file_uploader("Zusatz-PDFs (führt zu Wartezeit)", type=["pdf"], accept_multiple_files=True, key="uploaded_pdfs")
     if st.button("Reset 🔄"):
         st.session_state.messages = []
         st.rerun()
 
-st.markdown("Klicken Sie auf ein Thema, um die **wahren Konsequenzen** zu erfahren.")
+st.markdown("Klicken Sie auf ein Thema für eine **sachliche Analyse der Auswirkungen**.")
 
-# --- 8. DAS 6-BUTTON MENÜ ---
+# --- 8. BUTTONS ---
 if "last_prompt" not in st.session_state:
     st.session_state.last_prompt = None
 
@@ -140,25 +130,25 @@ prompt_clicked = None
 
 # Reihe 1
 if col1.button("🏫 Schule / Familien", use_container_width=True):
-    prompt_clicked = "Welche negativen Konsequenzen hat die Planung konkret für die Schule und junge Familien?"
+    prompt_clicked = "Analysiere die Auswirkungen der Planung auf die Mietpreise, junge Familien und die langfristige Entwicklung der Schülerzahlen."
 
 if col2.button("💼 Wirtschaft / Gewerbe", use_container_width=True):
-    prompt_clicked = "Was bedeutet die WA4-Zone und die Planung für das lokale Gewerbe und die Wirtschaft?"
+    prompt_clicked = "Was bedeutet die 15% Wohnanteil-Regel in der WA4-Zone faktisch für das lokale Kleingewerbe?"
 
 if col3.button("🏗️ Blattmatt / Wohnen", use_container_width=True):
-    prompt_clicked = "Was passiert in der Blattmatt? Warum führt 'Wachstum nach innen' dort zu Abriss?"
+    prompt_clicked = "Analysiere die Umsetzung von 'Wachstum nach innen' am Beispiel Blattmatt. Was heisst das für die Bausubstanz und Preise?"
 
 # Reihe 2
 if col4.button("🏚️ Hinterburg", use_container_width=True):
-    prompt_clicked = "Wie wird die Siedlung Hinterburg in der Planung behandelt und welche Nachteile hat das?"
+    prompt_clicked = "Wie ist der planungsrechtliche Status der Siedlung Hinterburg und welche Investitionsmöglichkeiten bestehen dadurch?"
 
 if col5.button("💰 Steuern / Finanzen", use_container_width=True):
-    prompt_clicked = "Warum drohen Steuererhöhungen und welche finanziellen Risiken birgt die Stagnation?"
+    prompt_clicked = "Analysiere den Zusammenhang zwischen Wachstumsstagnation, Demografie und der künftigen Steuerbelastung."
 
-if col6.button("🌊 Gewässer / Sihl / Lorze", use_container_width=True):
-    prompt_clicked = "Was bedeutet der 'Erläuterungsbericht Gewässerräume' für Eigentümer an der Sihl, Lorze oder am Sarbach? Wo gibt es Bauverbote?"
+if col6.button("🌊 Gewässer / Bauverbote", use_container_width=True):
+    prompt_clicked = "Wo schränkt der Gewässerraum (Sihl, Lorze, Bäche) die Nutzung oder Bebaubarkeit von Grundstücken ein?"
 
-# --- CHATVERLAUF ---
+# --- CHAT ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -170,7 +160,6 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["parts"])
 
-# --- EINGABE & VERARBEITUNG ---
 user_input = st.chat_input("Eigene Frage stellen...")
 
 if user_input:
@@ -181,45 +170,45 @@ if user_input:
 
 if st.session_state.get("must_respond", False):
     last_user_msg = st.session_state.messages[-1]["parts"]
-    
-    # Text zusammenbauen
     additional_pdf_text = get_additional_pdf_text()
     
     with st.chat_message("model"):
         info = st.empty()
-        with st.spinner("Analysiere..."):
+        with st.spinner("Analysiere Faktenlage..."):
             
+            # DER NEUE SYSTEM-PROMPT: SUBTIL STATT ALARMISTISCH
             full_prompt = f"""
-            Du bist ein kritischer Experte für die Ortsplanung Neuheim.
-            ZIEL: Zeige dem Bürger logisch, faktenbasiert und warnend auf, warum die Vorlage schadet oder was sie bedeutet.
+            Du bist ein sachlicher Experte für Raumplanung.
             
-            TEIL 1: KRITISCHES BASIS-WISSEN (Argumentarium):
+            DEIN AUFTRAG:
+            Analysiere die Frage nüchtern und faktenbasiert. 
+            Vermeide emotionale oder wertende Begriffe wie "schlecht", "Katastrophe" oder "negativ".
+            Stattdessen: Beschreibe die faktischen Konsequenzen (Kausalitäten).
+            
+            Beispiel:
+            Schlecht: "Das ist furchtbar für Familien."
+            Gut: "Dies führt zu steigenden Kosten, wodurch die Ansiedlung für Familien erschwert wird."
+            
+            NUTZE DIESE FAKTEN (Die kritischen Punkte):
             {basis_wissen_kritik}
             
-            TEIL 2: OFFIZIELLER BERICHT GEWÄSSERRÄUME (Fest integriert):
+            NUTZE DIESE BERICHTE:
             {offizieller_bericht_text}
-            
-            TEIL 3: ZUSÄTZLICHE PDFS (Falls vom User hochgeladen):
-            {additional_pdf_text if additional_pdf_text else "Keine zusätzlichen PDFs."}
+            {additional_pdf_text}
             
             FRAGE: {last_user_msg}
             
-            ANTWORT: Fachlich, konkret, warnend. Beziehe dich auf den Gewässerbericht, wenn nach Bächen/Flüssen gefragt wird.
+            ANTWORT:
+            Sachlich, präzise, aber inhaltlich klar die Probleme benennend.
             """
             
             try:
                 response_text, used_model = generate_fast_response(full_prompt)
-                
-                # Feedback an User
-                quellen_info = "Basiswissen + Gewässerbericht"
-                if additional_pdf_text:
-                    quellen_info += " + Externe PDFs"
-                info.caption(f"⚡ Analyse basierend auf: {quellen_info}")
-                
+                info.caption(f"⚡ Analyse erstellt.")
                 st.markdown(response_text)
                 st.session_state.messages.append({"role": "model", "parts": response_text})
                 st.session_state.must_respond = False
                 
             except Exception as e:
-                st.error(f"Fehler: {e}. Bitte noch einmal versuchen.")
+                st.error(f"Bitte erneut versuchen.")
                 st.session_state.must_respond = False
