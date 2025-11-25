@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 import pypdf
 import os
+import time  # WICHTIG: Für die Zeitverzögerung
 
 # --- 1. KONFIGURATION ---
 st.set_page_config(
@@ -16,11 +17,10 @@ api_key = None
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
 else:
-    # Fallback für lokales Testen
     if "api_key_input" not in st.session_state:
         st.session_state.api_key_input = "" 
     with st.sidebar:
-        api_key = st.text_input("API Key (falls nicht in Secrets)", type="password")
+        api_key = st.text_input("API Key", type="password")
 
 if not api_key:
     st.warning("Bot startet... (Warte auf API Key)")
@@ -28,13 +28,13 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# --- 3. MODELL (UPDATE AUF 2.0) ---
+# --- 3. MODELL ---
 @st.cache_resource
 def get_model():
-    # Nutzung des neuen Gemini 2.0 Flash Modells
-    return genai.GenerativeModel('gemini-2.0-flash')
+    # Wir bleiben bei dem Modell, das bei dir funktioniert
+    return genai.GenerativeModel('gemini-2.0-flash-exp')
 
-# --- 4. DAS KRITISCHE ARGUMENTARIUM (Basis-Wissen) ---
+# --- 4. DAS KRITISCHE ARGUMENTARIUM ---
 basis_wissen = """
 FAKTEN-CHECK & ARGUMENTARIUM FÜR EIN "NEIN" ZUR ORTSPLANUNG NEUHEIM:
 
@@ -88,14 +88,13 @@ pdf_text_auto, loaded_files_auto = load_data()
 
 # --- 6. UI & SIDEBAR ---
 with st.sidebar:
-    st.header("⚙️ Steuerung")
+    st.header("⚙️ Status")
     if loaded_files_auto:
-        st.success(f"{len(loaded_files_auto)} offizielle PDFs geladen.")
+        st.success(f"{len(loaded_files_auto)} PDFs aktiv.")
     else:
-        st.info("Keine PDFs auf GitHub gefunden (Nutze Argumentarium).")
+        st.info("Keine PDFs gefunden (Basis-Modus).")
     
-    # Reset Button für den Notfall
-    if st.button("Neuer Chat / Reset 🔄"):
+    if st.button("Neuer Chat 🔄"):
         st.session_state.messages = []
         st.rerun()
 
@@ -103,89 +102,87 @@ with st.sidebar:
 st.title("🏘️ Ortsplanung Neuheim: Klartext.")
 st.markdown("Stellen Sie Fragen zu den Folgen der Revision. Der Bot antwortet fachlich fundiert und kritisch.")
 
-# History initialisieren
 if "messages" not in st.session_state:
     st.session_state.messages = []
     st.session_state.messages.append({
         "role": "model", 
-        "parts": "Hallo! Ich habe die Planung analysiert. Fragen Sie mich zu **Steuern, Schule, Hinterburg** oder den **finanziellen Risiken**. Ich sage Ihnen, was im Bericht steht - und was es wirklich bedeutet."
+        "parts": "Hallo! Ich habe die Planung analysiert. Fragen Sie mich zu **Steuern, Schule** oder **Parzelle 7**. Ich erkläre die kritischen Konsequenzen."
     })
 
-# Verlauf anzeigen
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["parts"])
 
-# --- 8. VORSCHLAGS-BUTTONS & INPUT ---
-
-# Variable initialisieren
+# --- 8. INPUT ---
 prompt_clicked = None
 
-# Buttons nur zeigen, wenn der Chat noch frisch ist
 if len(st.session_state.messages) < 3:
     st.markdown("---")
-    st.markdown("**Beispielfragen:**")
     col1, col2, col3 = st.columns(3)
-    
-    if col1.button("💰 Folgen für Steuerzahler?"):
+    if col1.button("💰 Folgen Steuern?"):
         prompt_clicked = "Welche finanziellen Folgen hat die Revision langfristig für die Gemeinde und meine Steuern?"
-    
-    if col2.button("🏫 Zukunft der Schule?"):
+    if col2.button("🏫 Zukunft Schule?"):
         prompt_clicked = "Welche Konsequenzen hat die Planung für die Schule und Familien?"
-        
-    if col3.button("🏗️ Was passiert in der Hinterburg?"):
+    if col3.button("🏗️ Was passiert Hinterburg?"):
         prompt_clicked = "Wie sieht die Zukunft für die Siedlung Hinterburg aus?"
 
-# Eingabefeld
-user_input = st.chat_input("Ihre kritische Frage hier eintippen...")
-
-# Entscheidung: Button oder Tippen?
+user_input = st.chat_input("Frage eintippen...")
 prompt_final = prompt_clicked if prompt_clicked else user_input
 
-# --- 9. VERARBEITUNG ---
+# --- 9. VERARBEITUNG MIT RETRY-LOGIK (NEU!) ---
 if prompt_final:
-    # 1. User Nachricht anzeigen
     st.session_state.messages.append({"role": "user", "parts": prompt_final})
     with st.chat_message("user"):
         st.markdown(prompt_final)
 
-    # 2. KI Antwort generieren
     with st.chat_message("model"):
-        with st.spinner("Analysiere Fakten & Argumente (Gemini 2.0)..."):
-            try:
-                model = get_model()
-                
-                # Der scharfe System-Prompt
-                system_instruction = f"""
-                Du bist ein kritischer Experte für die Ortsplanung Neuheim.
-                
-                DEIN AUFTRAG:
-                Zeige dem Bürger logisch, faktenbasiert und warnend auf, warum die Vorlage der Gemeinde schadet.
-                
-                ARGUMENTATIONS-LEITFADEN:
-                1. Frage nach **Steuern/Finanzen** -> Warnung vor Überalterung & Steuererhöhung (weil Zahler fehlen).
-                2. Frage nach **Schule** -> Warnung vor Schrumpfung (weil Familien verdrängt werden).
-                3. Frage nach **Wohnen/Bauen** -> Nenne "Blattmatt" (Abriss statt Verdichtung) und "Parzelle 7" (Vermögensvernichtung).
-                4. Frage nach **Gewerbe** -> Warnung vor Ladensterben und schlechter WA4-Zone.
-                
-                INSIDER-WISSEN (Deine Basis):
-                {basis_wissen}
-                
-                OFFIZIELLE DOKUMENTE (Zum Widerlegen):
-                {pdf_text_auto if pdf_text_auto else "Keine PDFs. Argumentiere rein aus dem Insider-Wissen."}
-                
-                FRAGE: {prompt_final}
-                
-                ANTWORT:
-                Fachlich, konkret, "Ross und Reiter" nennend. Schließe mit einem klaren Fazit aus Sicht der Betroffenen.
-                """
-                
-                response = model.generate_content(system_instruction)
-                
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "model", "parts": response.text})
-                
-            except Exception as e:
-                # Fehlerbehandlung
-                st.error(f"Ein technischer Fehler ist aufgetreten: {e}")
-                st.info("Tipp: Prüfen Sie, ob der API Key Zugriff auf 'gemini-2.0-flash' hat.")
+        with st.spinner("Analysiere..."):
+            
+            # --- HIER IST DIE NEUE LOGIK ---
+            response_text = ""
+            success = False
+            max_retries = 3  # Wir versuchen es 3 mal
+            
+            model = get_model()
+            
+            system_instruction = f"""
+            Du bist ein kritischer Experte für die Ortsplanung Neuheim.
+            DEIN AUFTRAG: Zeige logisch und warnend auf, warum die Vorlage schadet.
+            
+            LEITFADEN:
+            1. Steuern -> Warnung vor Überalterung & Steuererhöhung.
+            2. Schule -> Warnung vor Schrumpfung (Familien finden keinen Platz).
+            3. Wohnen -> Blattmatt (Abriss), Parzelle 7 (Vermögensvernichtung).
+            4. Gewerbe -> Warnung vor Ladensterben (WA4).
+            
+            INSIDER-WISSEN: {basis_wissen}
+            DOKUMENTE: {pdf_text_auto if pdf_text_auto else "Keine PDFs."}
+            FRAGE: {prompt_final}
+            """
+
+            for attempt in range(max_retries):
+                try:
+                    # Der eigentliche Aufruf an Google
+                    response = model.generate_content(system_instruction)
+                    response_text = response.text
+                    success = True
+                    break # Wenn es klappt: Raus aus der Schleife!
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    # Wenn Fehler 429 (Resource exhausted) kommt:
+                    if "429" in error_msg:
+                        wait_time = 5 * (attempt + 1) # Beim 1. Mal 5s, beim 2. Mal 10s warten
+                        st.toast(f"⏳ Hohe Auslastung. Warte {wait_time} Sekunden...", icon="🕒")
+                        time.sleep(wait_time)
+                        continue # Nächster Versuch
+                    else:
+                        # Wenn es ein anderer Fehler ist: Sofort anzeigen
+                        st.error(f"Technischer Fehler: {e}")
+                        break
+
+            if success:
+                st.markdown(response_text)
+                st.session_state.messages.append({"role": "model", "parts": response_text})
+            elif not success and "429" in error_msg:
+                 st.error("Das System ist gerade stark überlastet. Bitte warten Sie 30 Sekunden und versuchen Sie es dann erneut.")
