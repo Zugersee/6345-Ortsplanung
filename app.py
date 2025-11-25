@@ -28,12 +28,13 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# --- 3. MODELL ---
+# --- 3. MODELL (UPDATE AUF 2.0) ---
 @st.cache_resource
 def get_model():
-    return genai.GenerativeModel('gemini-1.5-flash')
+    # Nutzung des neuen Gemini 2.0 Flash Modells
+    return genai.GenerativeModel('gemini-2.0-flash')
 
-# --- 4. DAS KRITISCHE ARGUMENTARIUM (Deine Vorgabe) ---
+# --- 4. DAS KRITISCHE ARGUMENTARIUM (Basis-Wissen) ---
 basis_wissen = """
 FAKTEN-CHECK & ARGUMENTARIUM FÜR EIN "NEIN" ZUR ORTSPLANUNG NEUHEIM:
 
@@ -117,10 +118,10 @@ for msg in st.session_state.messages:
 
 # --- 8. VORSCHLAGS-BUTTONS & INPUT ---
 
-# WICHTIG: Variable hier initialisieren (Fix für den NameError)
+# Variable initialisieren
 prompt_clicked = None
 
-# Buttons nur zeigen, wenn der Chat noch frisch ist (weniger als 3 Nachrichten)
+# Buttons nur zeigen, wenn der Chat noch frisch ist
 if len(st.session_state.messages) < 3:
     st.markdown("---")
     st.markdown("**Beispielfragen:**")
@@ -150,7 +151,7 @@ if prompt_final:
 
     # 2. KI Antwort generieren
     with st.chat_message("model"):
-        with st.spinner("Analysiere Fakten & Argumente..."):
+        with st.spinner("Analysiere Fakten & Argumente (Gemini 2.0-flash)..."):
             try:
                 model = get_model()
                 
@@ -171,20 +172,4 @@ if prompt_final:
                 {basis_wissen}
                 
                 OFFIZIELLE DOKUMENTE (Zum Widerlegen):
-                {pdf_text_auto if pdf_text_auto else "Keine PDFs. Argumentiere rein aus dem Insider-Wissen."}
-                
-                FRAGE: {prompt_final}
-                
-                ANTWORT:
-                Fachlich, konkret, "Ross und Reiter" nennend. Schließe mit einem klaren Fazit aus Sicht der Betroffenen.
-                """
-                
-                response = model.generate_content(system_instruction)
-                
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "model", "parts": response.text})
-                
-            except Exception as e:
-                # Fehlerbehandlung: Zeige Fehler, aber erlaube weitermachen
-                st.error(f"Ein technischer Fehler ist aufgetreten: {e}")
-                st.info("Bitte versuchen Sie es erneut oder formulieren Sie die Frage um.")
+                {pdf_text_auto if pdf_text_auto else
