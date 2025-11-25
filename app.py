@@ -44,48 +44,37 @@ def generate_fast_response(prompt_text):
             last_error = e
             time.sleep(0.5)
             continue
-            
     raise last_error
 
 # --- 4. WISSENSDATENBANK ---
-
-# A) DIE PLANERISCHEN VORTEILE (Für die neutrale Oberfläche)
 vorteile_planung = """
-1. RECHTSSICHERHEIT: Die Planung ist nach jahrelanger Arbeit abgeschlossen, was sofortige Rechtssicherheit für Baugesuche und den Zonenplan schafft.
-2. GEWÄSSERSCHUTZ: Die Vorlage setzt übergeordnetes Recht um (Art. 36a GSchG). Gewässerräume werden festgelegt (z.B. an Sihl und Lorze), was die Ökologie fördert.
+1. RECHTSSICHERHEIT: Die Planung ist abgeschlossen und schafft sofortige Rechtssicherheit für Baugesuche.
+2. GEWÄSSERSCHUTZ: Die Vorlage setzt übergeordnetes Recht um (Art. 36a GSchG) und fördert die Ökologie.
 3. BAUGRENZEN: Es werden klare Grenzen für das Wachstum nach innen gesetzt.
 """
-
-# B) DIE KRITISCHEN FAKTEN (Die eigentliche Argumentation)
 basis_wissen_kritik = """
 POINTIERTE KRITISCHE FAKTEN:
 
 1. MIETER & FAMILIEN:
-- Fakt: Planung setzt auf "Ersatzneubau" (z.B. Blattmatt).
-- Konsequenz: Massive Mietpreisanstiege, Verdrängungseffekt, da bezahlbare Bausubstanz verschwindet.
+- Fakt: Planung setzt auf "Ersatzneubau" (z.B. Blattmatt). Konsequenz: Massive Mietpreisanstiege, Verdrängungseffekt.
 
 2. FINANZEN & STEUERN:
-- Fakt: Durch fehlendes Wachstum stagniert die Einwohnerzahl und altert.
-- Konsequenz: Die Last der fixen Infrastrukturkosten (Schule, Strassen) verteilt sich auf weniger Erwerbstätige. Drohende Steuererhöhung.
+- Fakt: Durch fehlendes Wachstum stagniert die Einwohnerzahl und altert. Konsequenz: Last der Infrastrukturkosten verteilt sich auf weniger Erwerbstätige. Drohende Steuererhöhung.
 
 3. SCHULE & LEHRER:
-- Fakt: Hohe Mieten verhindern Zuzug junger Familien.
-- Konsequenz: Schülerzahlen sinken, was zu Klassenzusammenlegungen und Gefährdung des Schulstandortes führt.
+- Fakt: Hohe Mieten verhindern Zuzug junger Familien. Konsequenz: Schülerzahlen sinken, Klassenzusammenlegungen und Gefährdung des Schulstandortes.
 
 4. EIGENTUM & HINTERBURG:
-- Fakt: Die Siedlung Hinterburg wird planerisch als "ausserhalb Bauzone" behandelt.
-- Konsequenz: Investitionshemmnis, eingeschränkte An-/Umbau-Möglichkeiten. Gleiches gilt für Flächen entlang rückgezonter oder nicht genutzter Parzellen (z.B. Parzelle 7).
+- Fakt: Siedlung Hinterburg wird planerisch als "ausserhalb Bauzone" behandelt. Konsequenz: Planerischer Stillstand, Investitionshemmnis, eingeschränkte An-/Umbau-Möglichkeiten.
 
 5. GEWERBE:
-- Fakt: WA4-Zone deckelt Wohnanteil auf 15%.
-- Konsequenz: Hemmt modernes Kleingewerbe (Wohnen/Arbeiten).
+- Fakt: WA4-Zone deckelt Wohnanteil auf 15%. Konsequenz: Hemmt modernes Kleingewerbe (Wohnen/Arbeiten).
 
 6. DORFCHARAKTER:
-- Fakt: Verdichtung im Zentrum führt zu Schattenwurf und Verlust privater Grünflächen.
-- Konsequenz: Wandel des dörflichen Charakters hin zu einer städtischeren Dichte.
+- Fakt: Verdichtung im Zentrum führt zu Schattenwurf und Verlust privater Grünflächen. Konsequenz: Wandel des dörflichen Charakters.
 """
 
-# --- 5. PDF LADEN ---
+# --- 5. DATEN LADEN (Turbo-Mode) ---
 def get_additional_pdf_text():
     uploaded_files = st.session_state.get('uploaded_pdfs', [])
     text = ""
@@ -98,12 +87,8 @@ def get_additional_pdf_text():
             except: pass
     return text
 
-files_text = load_data() # Hier wird load_data() zu files_text umbenannt
-# Ich muss den User überzeugen, dass ich die Daten schon geladen habe.
-# st.cache_resource ist außerhalb des Hauptskripts.
 @st.cache_resource
 def load_data():
-    # Wir laden keine PDFs live, sondern nur den TXT-Ersatz, falls vorhanden
     text = ""
     current_dir = os.getcwd()
     txt_files = [f for f in os.listdir(current_dir) if f.lower().endswith(('.txt'))]
@@ -114,6 +99,8 @@ def load_data():
                 text += f"\n\n--- DOKUMENT: {f} ---\n{content}"
         except: pass
     return text
+
+files_text = load_data() 
 
 # --- 6. UI & BUTTONS ---
 st.title("🏘️ Ortsplanung Neuheim: Der Fakten-Check")
@@ -128,58 +115,50 @@ with st.sidebar:
     st.markdown("---")
     st.file_uploader("Zusatz-PDFs (optional)", type=["pdf"], accept_multiple_files=True, key="uploaded_pdfs")
 
-# ... (Buttons bleiben gleich) ...
+# WICHTIG: Die 9 Knöpfe sind jetzt sauber in einem Container definiert, um die Fehler zu vermeiden
+button_prompts = {
+    "👨‍👩‍👧 Familie & Mieter": "Ich bin Mieter / junge Familie. Was sind die Vor- und Nachteile der Planung für mich?",
+    "🏡 Eigenheim (Steuern)": "Ich bin Eigenheimbesitzer. Was bedeutet die Planung für meine Steuern und die Bebaubarkeit meines Grundstücks?",
+    "🏫 Schule & Lehrer": "Ich arbeite an der Schule. Was bedeutet die Demografie-Entwicklung für meinen Arbeitsplatz?",
+    "💰 Steuerzahler (Finanzen)": "Warum droht bei Annahme der Vorlage eine Steuererhöhung? Erkläre den Zusammenhang mit der Stagnation.",
+    "🛠️ Gewerbe (WA4-Zone)": "Was bedeutet die 15% Wohnanteil-Regel in der WA4-Zone faktisch für das lokale Gewerbe und Wohnen/Arbeiten?",
+    "🛒 Dorfladen / Wirtschaft": "Welche Folgen hat die Planung für Dorfläden und die Nahversorgung im Zentrum?",
+    "🏗️ Blattmatt (Wohnen)": "Was passiert konkret in der Blattmatt? Analyse zu 'Ersatzneubau' vs. günstigem Wohnraum.",
+    "🏘️ Dorfkern & Charakter": "Wie verändert sich der Charakter im Dorfkern/Sarbach? (Schatten, Grünflächen, Dichte).",
+    "🏚️ Siedlung Hinterburg": "Welche klaren Nachteile entstehen für Eigentümer der Siedlung Hinterburg durch die Zonierung?"
+}
+
+clicked_key = None
+clicked_button_name = None
+
+# 3x3 Grid für die Übersicht
+st.markdown("### 🎯 Interessensgruppen")
+cols = st.columns(3)
+
+# Wir füllen den Container mit den Buttons und nutzen eine Schleife, um sie zu platzieren
+for i, (name, prompt) in enumerate(button_prompts.items()):
+    col = cols[i % 3]
+    if col.button(name, use_container_width=True, key=f"btn_{i}"):
+        clicked_key = name
+        clicked_button_name = name # Speichern des Namens für die Anzeige
 
 # --- CHAT & VERARBEITUNG ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Wenn Button gedrückt, wird die Response getriggert (st.session_state.must_respond)
-
-# Hier beginnt die Button-Matrix (3x3)
-col1, col2, col3 = st.columns(3)
-col4, col5, col6 = st.columns(3)
-col7, col8, col9 = st.columns(3) # Nur 3 Spalten sind definiert, ich mache 3 Reihen à 3 Knöpfe
-
-# Logik für das Auslösen des Prompts durch Buttons
-prompt_clicked = None
-if col1.button("👨‍👩‍👧 Familie & Mieter"):
-    prompt_clicked = "Ich bin Mieter / junge Familie. Was sind die Vor- und Nachteile der Planung für mich?"
-# ... (Hier müssten die anderen Buttons sein) ... 
-
-# Da die Button-Logik sehr lang ist, vereinfache ich und setze nur die entscheidenden Teile ein:
-# (Die Button-Funktionen aus dem letzten Code sind als intakt angenommen)
-# Wir simulieren den Rest der Buttons, um den Code kompakt zu halten:
-
-if 'col1' not in st.session_state: # Dummy für den Button-Trigger
-    st.session_state['col1'] = False
-
-col1, col2, col3 = st.columns(3)
-if col1.button("1. Familie & Mieter"): prompt_clicked = "Frage 1"
-if col2.button("2. Wirtschaft / Gewerbe"): prompt_clicked = "Frage 2"
-if col3.button("3. Schule & Lehrer"): prompt_clicked = "Frage 3"
-
-col4, col5, col6 = st.columns(3)
-if col4.button("4. Steuern / Finanzen"): prompt_clicked = "Frage 4"
-if col5.button("5. Blattmatt (Wohnen)"): prompt_clicked = "Frage 5"
-if col6.button("6. Hinterburg"): prompt_clicked = "Frage 6"
-
-col7, col8, col9 = st.columns(3)
-if col7.button("7. Dorfcharakter"): prompt_clicked = "Frage 7"
-if col8.button("8. Dorfläden"): prompt_clicked = "Frage 8"
-if col9.button("9. Eigenheim"): prompt_clicked = "Frage 9"
-
-
-if prompt_clicked:
-    st.session_state.messages.append({"role": "user", "parts": prompt_clicked})
+# Wenn Button geklickt wurde, setzen wir die letzte Nachricht
+if clicked_button_name:
+    prompt_to_send = button_prompts[clicked_button_name]
+    st.session_state.messages.append({"role": "user", "parts": prompt_to_send})
     st.session_state.must_respond = True
 
-
+# Chat rendern
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["parts"])
 
-user_input = st.chat_input("Eigene Frage stellen...")
+# Manuelle Eingabe
+user_input = st.chat_input("Oder stellen Sie eine eigene, spezifische Frage...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "parts": user_input})
@@ -188,7 +167,7 @@ if user_input:
 
 # --- 10. KI ANTWORT ---
 
-if st.session_state.get("must_respond", False):
+if st.session_state.get("must_respond", False) and st.session_state.messages:
     last_user_msg = st.session_state.messages[-1]["parts"]
     additional_pdf_text = get_additional_pdf_text()
     
@@ -196,25 +175,24 @@ if st.session_state.get("must_respond", False):
         info = st.empty()
         with st.spinner("Analysiere Faktenlage..."):
             
-            # DER NEU AUSGEGLICHENE SYSTEM-PROMPT
+            # DER SACHLICH-KRITISCHE PROMPT
             full_prompt = f"""
-            Du bist ein sachlicher Experte für Raumplanung.
+            Du bist ein sachlicher, scharfer Planungs-Analyst.
             
-            DEIN AUFTRAG:
-            Antworte kurz, pointiert und sachlich auf die Frage des Bürgers.
-            Präsentiere die Analyse IMMER in den drei Kategorien (Vorteil, Risiko, Chance), um Ausgewogenheit zu signalisieren.
+            AUFTRAG:
+            Antworte kurz, pointiert und sachlich auf die Frage. Das Ziel ist eine klare, kritische Aufklärung.
             
-            DAS ERFORDERLICHE ANTWORT-FORMAT:
+            NUTZE ZWINGEND FOLGENDE MATRIX (Kurze Bulletpoints):
             
-            ### ✅ BEI ANNAHME (JA-Stimme)
-            * 🟢 **Vorteil (Planerisch):** [Nenne einen neutralen, planerischen Vorteil aus dem 'Vorteile' Block].
-            * 🔴 **Ihr Risiko:** [Der härteste, pointierte, persönliche Nachteil aus dem 'Kritik' Block].
+            ### ✅ BEI ANNAHME DER VORLAGE (JA-Stimme)
+            * 🟢 **Vorteil (Planerisch):** [Nenne einen Vorteil (z.B. Rechtssicherheit, Gewässerschutz) aus dem 'Vorteile' Block].
+            * 🔴 **Ihr Risiko:** [Der härteste, pointierte, persönliche Nachteil aus dem 'Kritik' Block, der direkt mit der Frage zusammenhängt].
             
             ### ✨ BEI ABLEHNUNG (NEIN-Stimme)
-            * **Ihre Chance:** [Was kann besser gemacht werden? z.B. Schutz der Bausubstanz, familienfreundliche Zonierung].
+            * **Ihre Chance:** [Was kann besser gemacht werden? Z.B. Schaffung bezahlbaren Wohnraums, faire Zonierung].
             * **Nachteil:** Zeitverzögerung bis zur neuen Vorlage.
             
-            NUTZE DIESE FAKTEN FÜR DIE ANALYSE:
+            NUTZE DIESE FAKTEN:
             {basis_wissen_kritik}
             {vorteile_planung} 
             
@@ -226,11 +204,12 @@ if st.session_state.get("must_respond", False):
             
             try:
                 response_text, used_model = generate_fast_response(full_prompt)
-                info.caption(f"⚡ Analyse fertiggestellt.")
+                info.caption(f"⚡ Analyse erstellt mit {used_model}")
                 st.markdown(response_text)
                 st.session_state.messages.append({"role": "model", "parts": response_text})
                 st.session_state.must_respond = False
                 
             except Exception as e:
-                st.error(f"Bitte erneut versuchen.")
+                st.error(f"Fehler bei der Analyse. Ursache: {e}. Bitte kurz warten und erneut versuchen.")
+                st.session_state.messages.append({"role": "model", "parts": "Entschuldigung, die Analyse konnte aufgrund eines technischen Problems nicht abgeschlossen werden. Bitte warten Sie einen Moment."})
                 st.session_state.must_respond = False
