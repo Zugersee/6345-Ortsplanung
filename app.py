@@ -151,7 +151,7 @@ if prompt_final:
 
     # 2. KI Antwort generieren
     with st.chat_message("model"):
-        with st.spinner("Analysiere Fakten & Argumente (Gemini 2.0-flash)..."):
+        with st.spinner("Analysiere Fakten & Argumente (Gemini 2.0)..."):
             try:
                 model = get_model()
                 
@@ -172,4 +172,20 @@ if prompt_final:
                 {basis_wissen}
                 
                 OFFIZIELLE DOKUMENTE (Zum Widerlegen):
-                {pdf_text_auto if pdf_text_auto else
+                {pdf_text_auto if pdf_text_auto else "Keine PDFs. Argumentiere rein aus dem Insider-Wissen."}
+                
+                FRAGE: {prompt_final}
+                
+                ANTWORT:
+                Fachlich, konkret, "Ross und Reiter" nennend. Schließe mit einem klaren Fazit aus Sicht der Betroffenen.
+                """
+                
+                response = model.generate_content(system_instruction)
+                
+                st.markdown(response.text)
+                st.session_state.messages.append({"role": "model", "parts": response.text})
+                
+            except Exception as e:
+                # Fehlerbehandlung
+                st.error(f"Ein technischer Fehler ist aufgetreten: {e}")
+                st.info("Tipp: Prüfen Sie, ob der API Key Zugriff auf 'gemini-2.0-flash' hat.")
