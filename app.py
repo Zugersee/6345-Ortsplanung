@@ -1,135 +1,155 @@
-st.stop()
+import streamlit as st
+import google.generativeai as genai
+import pypdf
+from io import BytesIO
+
+# --- 1. KONFIGURATION ---
+st.set_page_config(page_title="Neuheim Analyse Bot", page_icon="🏘️", layout="wide")
+
+# --- 2. API KEY SETUP (CLOUD & LOKAL) ---
+# Der Bot schaut erst in die geheimen Cloud-Settings. Wenn dort nichts ist, fragt er den User.
+api_key = None
+
+if "GOOGLE_API_KEY" in st.secrets:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+else:
+    # Fallback: Wenn jemand den Code lokal testet ohne Secrets
+    if "api_key_input" not in st.session_state:
+        st.session_state.api_key_input = ""
+    
+    with st.sidebar:
+        st.warning("Kein API Key in den Secrets gefunden.")
+        api_key = st.text_input("Google API Key eingeben", type="password")
+
+if not api_key:
+    st.info("Bitte API Key konfigurieren um zu starten.")
+    st.stop()
 
 genai.configure(api_key=api_key)
 
-# --- 3. FIXES WISSEN (Dein Bericht) ---
-# Das ist der Text, den du oben geliefert hast. Er dient als "Insider-Wissen".
+# --- 3. DAS "GEHEIME" INSIDER-WISSEN ---
 basis_wissen = """
-KRITISCHER BERICHT ZUR LAGE (Quelle: Engagierter Einwohner):
-- Allgemein: Wachstum soll laut Gemeinde nur nach innen möglich sein. Praxisbeispiel Blattmatt: Abriss intakter Bausubstanz.
-- Wohnraum: Bezahlbarer Wohnraum entsteht nur auf der grünen Wiese, nicht durch Verdichtung.
-- Parzelle 7 (Landolt/Säntisstrasse): War W2, soll in Landwirtschaftszone zurückgezont werden. Kritik: Sollte besser W3 für bezahlbaren Wohnraum werden (Ebene bis Hügelfuss Hirschleten).
-- Industriegebiet (WA4): Name suggeriert Wohnen/Arbeiten. Aber: Wohnanteil auf 15% beschränkt. Das ist eigentümerfeindlich und verhindert Wohnraum.
-- Bürgergemeinde: Sandgefüllter Keller an der Oberlandstrasse darf wohl 20 Jahre nicht genutzt werden.
-- Technikmuseum ZDT: Zukunft in Landwirtschaftszone unsicher, Umzonung in OeIB wurde verpasst.
-- Hinterburg: Kantonale Raumplanung findet Richtlinien für Bauen ausserhalb Bauzone hier unangemessen (da faktisch Siedlungscharakter). Gemeinde/Planer (R+K) haben Chance verpasst, ein Entwicklungskonzept (Kombistudie) zu erstellen.
+KRITISCHE ANALYSE / HINTERGRUNDWISSEN ZUR LAGE NEUHEIM:
+
+1. WACHSTUMS-LÜGE & WOHNRAUM
+- Offizielle Linie: "Wachstum nur nach innen".
+- Realität: In der 'Blattmatt' werden zwei Wohnhäuser mit intakter Bausubstanz abgerissen. Günstiger Wohnraum wird vernichtet.
+- Fazit: Bezahlbarer Wohnraum entsteht nur bei Neueinzonungen (Grüne Wiese), da Verdichtung durch Abriss/Neubau zu teuren Mieten führt.
+
+2. PARZELLE 7 (Landolt / Säntisstrasse)
+- Status: War W2, soll Landwirtschaftszone werden (Rückzonung).
+- Kritik: Die Fläche ist eben und liegt ideal bis zum Hügelfuss Hirschleten. Hier müsste man W3 einzonen für bezahlbaren Wohnraum, statt rückzuzonen.
+
+3. INDUSTRIEGEBIET (WA4-Zone)
+- Etikettenschwindel: Heisst "Wohn-Arbeits-Zone", erlaubt aber nur 15% Wohnanteil.
+- Kritik: Das verhindert lebendige Durchmischung. Eigentümerfeindlich. Ein Neuheimer Kantonsrat (Hauseigentümerverband-Präsidium!) stützt dies unverständlicherweise.
+
+4. BÜRGERGEMEINDE
+- Problem: Sandgefüllter Keller an der Oberlandstrasse.
+- Folge: Darf wohl 20 Jahre nicht genutzt werden. Kommt einer Enteignung gleich.
+
+5. TECHNIKMUSEUM ZDT & HINTERBURG
+- ZDT: Liegt in Landwirtschaftszone, Zukunft ungesichert. Umzonung in OeIB verpasst.
+- Hinterburg: Kanton sagt, Richtlinien für "Bauen ausserhalb Bauzone" passen hier nicht (da faktisch Siedlung). Planer (R+K) hatten "keine Lust" auf Kombistudie. Chance vertan.
 """
 
 # --- 4. FUNKTIONEN ---
 @st.cache_resource
 def get_model():
-    # Wir nutzen Flash für schnelle Verarbeitung grosser Textmengen
-    return genai.GenerativeModel('gemini-1.5-flash') 
+    return genai.GenerativeModel('gemini-1.5-flash')
 
-def extract_text_from_pdf(uploaded_file):
-    try:
-        pdf_reader = pypdf.PdfReader(uploaded_file)
-        text = ""
-        for page in pdf_reader.pages:
-            text += page.extract_text() or ""
-        return text
-    except Exception as e:
-        return f"Fehler beim Lesen von {uploaded_file.name}: {e}"
+def extract_text_from_pdf(uploaded_files):
+    text_content = ""
+    for pdf_file in uploaded_files:
+        try:
+            pdf_reader = pypdf.PdfReader(pdf_file)
+            text_content += f"\n\n--- DOKUMENT: {pdf_file.name} ---\n"
+            for page in pdf_reader.pages:
+                text_content += page.extract_text() or ""
+        except Exception as e:
+            st.error(f"Fehler beim Lesen von {pdf_file.name}: {e}")
+    return text_content
 
-# --- 5. SIDEBAR: DOKUMENTE LADEN ---
-with st.sidebar:
-    st.header("📂 Wissensbasis erweitern")
-    st.markdown("Lade hier die offiziellen Dokumente hoch (Erläuterungsbericht, Zonenplan-Bericht, etc.), damit der Bot Details zu Steuern und Schule kennt.")
-    
-    uploaded_files = st.file_uploader("PDFs hochladen", type=["pdf"], accept_multiple_files=True)
-    
-    st.markdown("---")
-    if st.button("Chat zurücksetzen 🗑️"):
-        st.session_state.messages = []
-        st.session_state.pdf_content = "" # Cache leeren
-        st.rerun()
-
-# --- 6. DATENVERARBEITUNG ---
-if "pdf_content" not in st.session_state:
-    st.session_state.pdf_content = ""
-
-# Wenn neue Dateien hochgeladen wurden, Text extrahieren
-if uploaded_files:
-    raw_text = ""
-    for pdf in uploaded_files:
-        with st.spinner(f"Analysiere {pdf.name}..."):
-            raw_text += f"\n--- INHALT AUS DATEI: {pdf.name} ---\n"
-            raw_text += extract_text_from_pdf(pdf)
-    
-    # Nur aktualisieren, wenn sich was geändert hat, um Kosten zu sparen
-    if len(raw_text) > len(st.session_state.pdf_content):
-        st.session_state.pdf_content = raw_text
-        st.success(f"{len(uploaded_files)} Dokumente erfolgreich integriert!")
-
-# --- 7. SYSTEM PROMPT ---
-# Hier definieren wir die Logik: Faktenbasiert, Konsequenzen aufzeigend.
-
-system_instruction = f"""
-Du bist ein sachlicher, analytischer Experte für Raumplanung und Gemeindeentwicklung, spezialisiert auf die Ortsplanungs-Revision der Gemeinde Neuheim.
-
-DEINE AUFGABE:
-Beantworte Fragen der Einwohner zu den Konsequenzen der Planung.
-Analysiere die Auswirkungen auf: Finanzen, Steuern, bauliche Möglichkeiten, Schule, Verkehr und Eigentum.
-
-DEINE WISSENSBASIS:
-1. Ein kritischer Insider-Bericht (siehe unten).
-2. Offizielle Dokumente, die der User hochgeladen hat (siehe unten).
-
-VERHALTENSREGELN:
-1. **Faktenbasiert:** Keine pädagogischen Floskeln. Keine Begrüssungs-Lyrik. Komm sofort zum Punkt.
-2. **Konsequenzen nennen:** Wenn der User fragt "Was bedeutet das für mich?", erkläre die direkte Auswirkung (z.B. "Das bedeutet, Sie können auf Parzelle X nicht mehr bauen" oder "Das könnte zu Steuererhöhungen führen, weil...").
-3. **Quellenbezug:** Wenn eine Info aus dem "kritischen Bericht" stammt, kennzeichne das subtil (z.B. "Kritiker merken an..." oder "In der Praxis zeigt sich..."). Wenn es aus den offiziellen PDFs kommt, nutze diese Fakten.
-4. **Widersprüche aufzeigen:** Wenn der offizielle Bericht etwas verspricht (z.B. Wachstum), aber der Insider-Bericht das Gegenteil beweist (z.B. Blattmatt), stelle beide Sichtweisen gegenüber.
-
---- BEGINN BASISWISSEN (INSIDER BERICHT) ---
-{basis_wissen}
---- ENDE BASISWISSEN ---
-
---- BEGINN ZUSATZWISSEN AUS DOKUMENTEN ---
-{st.session_state.pdf_content}
---- ENDE ZUSATZWISSEN ---
-"""
-
-model = get_model()
-
-# --- 8. CHAT INTERFACE ---
-
-st.title("🏘️ Ortsplanung Neuheim: Der Fakten-Check")
+# --- 5. UI & LOGIK ---
+st.title("🏘️ Ortsplanung Neuheim: Fakten-Check")
 st.markdown("""
-Stellen Sie Fragen zur Revision. Was bedeutet sie konkret für:
-* 💰 **Geldbeutel:** Steuern, Gebühren, Liegenschaftswert
-* 🏗️ **Bauen:** Ausnützung, Aufzonung, Rückzonung
-* 🏫 **Zukunft:** Schule, Verkehr, Dorfentwicklung
+**Anleitung für Texterinnen:**
+1. Lade links die offiziellen PDFs hoch (Erläuterungsbericht, Zonenplan).
+2. Stelle rechts kritische Fragen. Der Bot vergleicht die **offiziellen Aussagen** mit dem **Insider-Wissen**.
 """)
 
+# PDF Upload Handling
+if "pdf_text" not in st.session_state:
+    st.session_state.pdf_text = ""
+
+with st.sidebar:
+    st.header("1. Wissen laden")
+    uploaded_files = st.file_uploader("Offizielle PDFs hier ablegen", type=["pdf"], accept_multiple_files=True)
+    
+    if uploaded_files:
+        if st.button("PDFs verarbeiten"):
+            with st.spinner("Lese Dokumente..."):
+                st.session_state.pdf_text = extract_text_from_pdf(uploaded_files)
+                st.success(f"{len(uploaded_files)} Dokumente integriert!")
+
+    st.markdown("---")
+    if st.button("Chat leeren 🗑️"):
+        st.session_state.messages = []
+        st.rerun()
+
+# Chat History
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+# Begrüssung
+if not st.session_state.messages:
+    st.info("👋 Ich bin bereit. Lade PDFs hoch für Details zu Steuern/Schule oder frag direkt los zum Thema Zoneneinteilung.")
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["parts"])
 
-if prompt := st.chat_input("Ihre Frage zur Ortsplanung (z.B. Was passiert mit der W2 Zone?"):
+# Input
+if prompt := st.chat_input("Frage z.B.: Was bedeutet die Revision für meine Steuern?"):
+    # 1. User Nachricht anzeigen
     st.session_state.messages.append({"role": "user", "parts": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # 2. KI Antwort generieren
     with st.chat_message("model"):
-        with st.spinner("Analysiere Dokumente und Konsequenzen..."):
+        with st.spinner("Analysiere Quellen..."):
             try:
-                # Wir bauen den Chat jedes Mal neu auf mit dem aktuellen System Prompt (falls neue PDFs kamen)
-                # Google Gemini API 'count_tokens' Workaround: Wir senden System Prompt + History
+                model = get_model()
                 
-                # Konfiguration des Chats
-                chat = model.start_chat(history=[])
+                # Prompt Engineering: Klare Anweisung für Faktencheck
+                system_instruction = f"""
+                Du bist ein kritischer Analyst für die Ortsplanung Neuheim.
                 
-                # Wir senden den System Prompt als erste Nachricht (Trick für Context) oder nutzen system_instruction parameter wenn unterstützt
-                # Hier "injizieren" wir es in den aktuellen Prompt, da Streamlit State stateless ist
-                final_prompt = system_instruction + "\n\nFRAGE DES USERS: " + prompt
+                DEINE AUFGABE:
+                Beantworte die Frage des Nutzers. Kombiniere dazu zwei Wissensquellen:
+                1. OFFIZIELLE DOKUMENTE (Text aus PDFs, falls vorhanden). Hier stehen Details zu Steuern, Schule, Finanzen.
+                2. KRITISCHES INSIDER-WISSEN (siehe unten). Hier stehen die wahren Probleme (Blattmatt, Parzelle 7, etc.).
                 
-                response = model.generate_content(final_prompt)
+                WICHTIG:
+                - Wenn nach **Finanzen/Steuern** gefragt wird: Suche die Antwort primär in den PDFs. Wenn keine PDFs da sind, sage ehrlich: "Dazu brauche ich den Erläuterungsbericht (bitte hochladen)."
+                - Wenn nach **Bauzonen/Projekten** gefragt wird: Nutze das Insider-Wissen, um Widersprüche zur offiziellen Lesart aufzuzeigen.
+                - Sei konkret: Nenne Zahlen, Orte und Konsequenzen.
+                - Tonalität: Sachlich, aufklärend, investigativ.
+                
+                --- QUELLE 1: INSIDER WISSEN ---
+                {basis_wissen}
+                
+                --- QUELLE 2: PDF INHALT ---
+                {st.session_state.pdf_text[:50000] if st.session_state.pdf_text else "LEER (Noch keine PDFs hochgeladen)"}
+                
+                FRAGE DES NUTZERS: {prompt}
+                """
+                
+                response = model.generate_content(system_instruction)
                 
                 st.markdown(response.text)
                 st.session_state.messages.append({"role": "model", "parts": response.text})
+                
             except Exception as e:
-                st.error(f"Fehler: {e}")
+                st.error(f"Ein Fehler ist aufgetreten: {e}")
